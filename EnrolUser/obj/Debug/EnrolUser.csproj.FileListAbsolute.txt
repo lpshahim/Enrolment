@@ -1,0 +1,10 @@
+C:\Users\23509384\Documents\GitHub\EnrolUser\EnrolUser\obj\Debug\EnrolUser.Form1.resources
+C:\Users\23509384\Documents\GitHub\EnrolUser\EnrolUser\obj\Debug\EnrolUser.Properties.Resources.resources
+C:\Users\23509384\Documents\GitHub\EnrolUser\EnrolUser\obj\Debug\EnrolUser.csproj.GenerateResource.Cache
+C:\Users\23509384\Documents\GitHub\EnrolUser\EnrolUser\obj\Debug\EnrolUser.csprojResolveAssemblyReference.cache
+C:\Users\23509384\Documents\GitHub\EnrolUser\EnrolUser\bin\Debug\EnrolUser.exe.config
+C:\Users\23509384\Documents\GitHub\EnrolUser\EnrolUser\bin\Debug\EnrolUser.exe
+C:\Users\23509384\Documents\GitHub\EnrolUser\EnrolUser\bin\Debug\EnrolUser.pdb
+C:\Users\23509384\Documents\GitHub\EnrolUser\EnrolUser\bin\Debug\LeapCSharp.NET4.5.dll
+C:\Users\23509384\Documents\GitHub\EnrolUser\EnrolUser\obj\Debug\EnrolUser.exe
+C:\Users\23509384\Documents\GitHub\EnrolUser\EnrolUser\obj\Debug\EnrolUser.pdb
