@@ -28,6 +28,9 @@ namespace EnrolUser
         Bitmap bitmap = new Bitmap(640, 480, System.Drawing.Imaging.PixelFormat.Format8bppIndexed);
         //Bitmap bitmap = new Bitmap(196, 246, System.Drawing.Imaging.PixelFormat.Format8bppIndexed);
 
+        //COMBONATIONS OF PRESENTED HAND GEOMETRY VECTOR
+        private HashSet<string> combos = new HashSet<string>(); 
+        
         bool checkAuthenticateEnrol = true;
         String vector = "";
         int timeLeft = 0;
@@ -427,7 +430,7 @@ namespace EnrolUser
 
                 bool yesNo = pixelValues.SetEquals(userHandGeo);
                 MessageBox.Show("HASHSET MATCH : " + Convert.ToString(yesNo));
-
+                
                 //convert hashset to array to sort and then test
                 /*int[] hSet1 = pixelValues.ToArray();
                 int[] hSet2 = userPin.ToArray();
@@ -1299,7 +1302,10 @@ namespace EnrolUser
             string newVector = transformVector(vec);
             Console.WriteLine("\nTransformed Geo: " + newVector + "\n\n");
 
-            vectorCheck(originalTransformedVector(vec));
+            //vectorCheck(originalTransformedVector(vec));
+
+            //check all vector combinations
+            possibleVectorCombinations(originalTransformedVector(vec),0);
 
             return newVector;
 
@@ -1389,6 +1395,9 @@ namespace EnrolUser
             string authUser = authenticateUser();
             generateAuthenticateUserHash(startUserKey, authUser);
             userLog("authenticated",txtPin.Text, authUser);
+
+            writeCombosToTextFile(combos);
+            readCombosListForMatch();
         }
 
         private void btnAuthenticate_Click(object sender, EventArgs e)
@@ -1456,7 +1465,7 @@ namespace EnrolUser
             string low = "";
             foreach(int i in lowVector)
             {
-                low += Convert.ToString(i);
+                low += Convert.ToString(i) + ",";
                 lowHashSet.Add(i);
             }
             generateVectorHash(low.TrimEnd(','));
@@ -1469,7 +1478,7 @@ namespace EnrolUser
             string high = "";
             foreach (int i in highVector)
             {
-                high += Convert.ToString(i);
+                high += Convert.ToString(i) + ",";
                 highHashSet.Add(i);
             }
             generateVectorHash(high.TrimEnd(','));
@@ -1480,6 +1489,7 @@ namespace EnrolUser
         {
             byte[] hash;
             HashSet<int> returnedHash = new HashSet<int>();
+            checkComboDuplicates(input);
             using (var sha2 = new SHA256CryptoServiceProvider())
             {
                 hash = sha2.ComputeHash(Encoding.Unicode.GetBytes(input));
@@ -1488,7 +1498,7 @@ namespace EnrolUser
                     returnedHash.Add(b);
                 }
             }
-            checkHashes(returnedHash);
+            //checkHashes(returnedHash);
             return returnedHash;
         }
 
@@ -1496,11 +1506,11 @@ namespace EnrolUser
         {
             if (hand.SetEquals(userHandGeo))
             {
-                Console.WriteLine("TRUE CHECK");
+                //Console.WriteLine("TRUE CHECK");
                 return true;
             }else
             {
-                Console.WriteLine("FALSE CHECK");
+                //Console.WriteLine("FALSE CHECK");
                 return false;
             }
         }
@@ -1516,6 +1526,115 @@ namespace EnrolUser
             transformedVector[4] = (int)(arr[15] + arr[16] + arr[17] + arr[18]);
 
             return transformedVector;
+        }
+        
+        //recursive function checking all possible vector combinations
+        private void possibleVectorCombinations(int[] originalVector, int count)
+        {
+            int[] low = new int[originalVector.Length];
+            int[] high = new int[originalVector.Length];
+
+            if (count == originalVector.Length)
+                return;
+
+            possibleVectorCombinations(originalVector, count + 1);
+
+            foreach (int val in originalVector)
+            {
+                Array.Copy(originalVector, low, originalVector.Length);
+                low[count] = originalVector[count] - 1;
+                Array.Copy(originalVector, high, originalVector.Length);
+                high[count] = originalVector[count] + 1;
+                printOutCombinations(low, high);
+                //RECURSE
+                possibleVectorCombinations(low, count + 1);
+                possibleVectorCombinations(high, count + 1);
+            }
+            
+        }
+
+        //function to print out combinations
+        private void printOutCombinations(int[] low, int[] high)
+        {
+            string lowArr = "";
+            string highArr = "";
+
+            foreach (int l in low)
+                lowArr += Convert.ToString(l) + ",";
+
+            foreach (int h in high)
+                highArr += Convert.ToString(h) + ",";
+
+
+            HashSet<int> lowSet = new HashSet<int>();
+            HashSet<int> highSet = new HashSet<int>();
+            lowSet = generateComboHashes(lowArr.TrimEnd(','));
+            highSet = generateComboHashes(highArr.TrimEnd(','));
+        }
+
+        //function to generate combination hashes
+        private HashSet<int> generateComboHashes(string input)
+        {
+            HashSet<int> finalHash = new HashSet<int>();
+            //string finalHash = "";
+            byte[] hash;
+
+            checkComboDuplicates(input);
+
+            using (var sha2 = new SHA256CryptoServiceProvider())
+            {
+                hash = sha2.ComputeHash(Encoding.Unicode.GetBytes(input));
+
+                foreach (byte b in hash)
+                    finalHash.Add(b);
+                    //finalHash += b + " ";
+
+            }
+
+            return finalHash;
+     
+        }
+
+        private void checkComboDuplicates(string input)
+        {
+            
+            if (!combos.Contains(input))
+            {
+                Console.WriteLine(input);
+                combos.Add(input);
+            }
+        }
+
+        private void writeCombosToTextFile(HashSet<string> combinations)
+        {
+            StreamWriter sw = new StreamWriter("combos.txt");
+
+            foreach (string i in combinations)
+                sw.WriteLine(i);
+
+            sw.Flush();
+            sw.Close();
+        }
+
+        private void readCombosListForMatch()
+        {
+            string[] read = File.ReadAllLines("combos.txt");
+
+            //dictionary of values
+            Dictionary<string, HashSet<int>> dic = new Dictionary<string, HashSet<int>>();
+                        
+            foreach(string i in read)
+            {
+                dic.Add(i, generateComboHashes(i));   
+            }
+            
+            foreach(var val in dic.Values)
+            {
+                if (userHandGeo.SetEquals(val))
+                    MessageBox.Show("ONE OF THE COMBOS MATCH!!!");
+                else
+                    Console.WriteLine("NO MATCH!");
+            }
         }
     }
 }
