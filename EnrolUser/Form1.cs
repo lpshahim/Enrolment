@@ -30,7 +30,8 @@ namespace EnrolUser
 
         //COMBONATIONS OF PRESENTED HAND GEOMETRY VECTOR
         private HashSet<string> combos = new HashSet<string>(); 
-        
+        private static HashSet<int> pixelValues = new HashSet<int>();
+
         bool checkAuthenticateEnrol = true;
         String vector = "";
         int timeLeft = 0;
@@ -135,6 +136,10 @@ namespace EnrolUser
 
         #region enrolUser
         static HashSet<int> userHandGeo = new HashSet<int>();
+
+        //check current authenticating hand geometry
+        static HashSet<int> currentUserHandGeo = new HashSet<int>();
+
         static HashSet<int> userPin = new HashSet<int>();
         static Dictionary<string, string> searchDictionary = new Dictionary<string, string>();
         static string startUserKey = "";
@@ -287,6 +292,7 @@ namespace EnrolUser
                 {
                     finalHash += b + " ";
                     userHandGeo.Add(b);
+                    currentUserHandGeo.Add(b);
                 }
             }
             checkUserPixels(startUserKey);
@@ -398,7 +404,7 @@ namespace EnrolUser
             using (FileStream fileStream = new FileStream("stegoImage2.png", FileMode.Open, FileAccess.ReadWrite))
             {
                 Bitmap bmp = new Bitmap(fileStream);
-                HashSet<int> pixelValues = new HashSet<int>();
+                //HashSet<int> pixelValues = new HashSet<int>();
                 string[] xy = Regex.Split(pixel, ",");
                 int x = Convert.ToInt16(xy[0]);
                 int y = Convert.ToInt16(xy[1]);
@@ -426,10 +432,11 @@ namespace EnrolUser
                     hashSet2 += Convert.ToString(i) + " ";
                 }
 
-                //Console.WriteLine("\nHashset1 of stored user geo is: {0}\nHashset 2 of presented and transformed geo is {1}\n", hashSet1, hashSet2);
+                Console.WriteLine("\nHashset1 of stored user geo is: {0}\nHashset 2 of presented and transformed geo is {1}\n", hashSet1, hashSet2);
 
                 bool yesNo = pixelValues.SetEquals(userHandGeo);
                 MessageBox.Show("HASHSET MATCH : " + Convert.ToString(yesNo));
+                
                 
                 //convert hashset to array to sort and then test
                 /*int[] hSet1 = pixelValues.ToArray();
@@ -1396,8 +1403,14 @@ namespace EnrolUser
             generateAuthenticateUserHash(startUserKey, authUser);
             userLog("authenticated",txtPin.Text, authUser);
 
-            writeCombosToTextFile(combos);
+            //writeCombosToTextFile(combos);
+
+            //close text file to read and check
+            sw.Flush();
+            sw.Close();
+
             readCombosListForMatch();
+
         }
 
         private void btnAuthenticate_Click(object sender, EventArgs e)
@@ -1531,6 +1544,7 @@ namespace EnrolUser
         //recursive function checking all possible vector combinations
         private void possibleVectorCombinations(int[] originalVector, int count)
         {
+            int increment = 0;
             int[] low = new int[originalVector.Length];
             int[] high = new int[originalVector.Length];
 
@@ -1541,10 +1555,11 @@ namespace EnrolUser
 
             foreach (int val in originalVector)
             {
+                increment++;
                 Array.Copy(originalVector, low, originalVector.Length);
-                low[count] = originalVector[count] - 1;
+                low[count] = originalVector[count] - increment;
                 Array.Copy(originalVector, high, originalVector.Length);
-                high[count] = originalVector[count] + 1;
+                high[count] = originalVector[count] + increment;
                 printOutCombinations(low, high);
                 //RECURSE
                 possibleVectorCombinations(low, count + 1);
@@ -1600,14 +1615,15 @@ namespace EnrolUser
             
             if (!combos.Contains(input))
             {
-                Console.WriteLine(input);
+                //Console.WriteLine(input);
                 combos.Add(input);
+                //sw.WriteLine(input);
             }
         }
-
+        static StreamWriter sw = new StreamWriter("combos.txt");
         private void writeCombosToTextFile(HashSet<string> combinations)
         {
-            StreamWriter sw = new StreamWriter("combos.txt");
+            
 
             foreach (string i in combinations)
                 sw.WriteLine(i);
@@ -1616,25 +1632,50 @@ namespace EnrolUser
             sw.Close();
         }
 
+        private HashSet<int> checkComboHashes(string input)
+        {
+            HashSet<int> finalHash = new HashSet<int>();
+            byte[] hash;
+            using (var sha2 = new SHA256CryptoServiceProvider())
+            {
+                hash = sha2.ComputeHash(Encoding.Unicode.GetBytes(input));
+
+                foreach (byte b in hash)
+                    finalHash.Add(b);
+            }
+            return finalHash;
+        }
+
         private void readCombosListForMatch()
         {
-            string[] read = File.ReadAllLines("combos.txt");
+            //string[] read = File.ReadAllLines("combos.txt");
 
             //dictionary of values
-            Dictionary<string, HashSet<int>> dic = new Dictionary<string, HashSet<int>>();
+            /*Dictionary<string, HashSet<int>> dic = new Dictionary<string, HashSet<int>>();
                         
-            foreach(string i in read)
+            foreach(string i in combos)
             {
                 dic.Add(i, generateComboHashes(i));   
-            }
-            
-            foreach(var val in dic.Values)
+            }*/
+
+            Console.WriteLine("Scanning...");
+            foreach (string i in combos)
             {
-                if (userHandGeo.SetEquals(val))
+                if (pixelValues.SetEquals(checkComboHashes(i)))
+                {
+                    MessageBox.Show("MATCH FOUND!");
+                    return;
+                }
+                    
+            }
+                
+            /*foreach(var val in dic.Values)
+            {
+                if (val.SetEquals(currentUserHandGeo))
                     MessageBox.Show("ONE OF THE COMBOS MATCH!!!");
                 else
                     Console.WriteLine("NO MATCH!");
-            }
+            }*/
         }
     }
 }
